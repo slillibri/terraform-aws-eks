@@ -22,20 +22,23 @@ the great 18.x refactor of the upstream is complete.
 */
 variable "workers_map" {
   type = map(object({
-    name                    = string,
-    kubelet_extra_args      = optional(string),
-    instance_type           = optional(string),
-    override_instance_types = optional(list(string)),
-    tags                    = optional(list(object({
+    name                          = string,
+    kubelet_extra_args            = optional(string),
+    instance_type                 = optional(string),
+    override_instance_types       = optional(list(string)),
+    tags                          = optional(list(object({
       key = optional(string),
       value = optional(string),
       propagate_at_launch = optional(bool),
       }))),
-    asg_desired_capacity    = optional(number),
-    asg_max_size            = optional(number),
-    asg_min_size            = optional(number),
-    iam_role_id             = optional(string),
-    subnets                 = optional(list(string)),
+    asg_desired_capacity          = optional(number),
+    asg_max_size                  = optional(number),
+    asg_min_size                  = optional(number),
+    iam_role_id                   = optional(string),
+    subnets                       = optional(list(string)),
+    additional_security_group_ids = optional(list(string)),
+    suspended_processes           = optional(list(string)),
+    userdata_template_extra_args  = optional(map(any)),
   }))
   description = "This is a map representation of the worker_groups_launch_template from the original upstream module"
   default = {
@@ -433,7 +436,7 @@ resource "aws_launch_template" "workers_map" {
 
 //this might be more difficult?
   iam_instance_profile {
-    name = aws_iam_instance_profile.workers_map[each.value["name"]].name ? aws_iam_instance_profile.workers_map[each.value["name"]].name : data.aws_iam_instance_profile.custom_workers_map_iam_instance_profile[each.value["name"]].name
+    name = aws_iam_instance_profile.workers_map[each.value["name"]].name != null ? aws_iam_instance_profile.workers_map[each.value["name"]].name : data.aws_iam_instance_profile.custom_workers_map_iam_instance_profile[each.value["name"]].name
   }
 
   enclave_options {
@@ -732,11 +735,7 @@ resource "aws_iam_instance_profile" "workers_map" {
   for_each = var.manage_worker_iam_resources ? tomap(var.workers_map) : {}
 
   name_prefix = local.cluster_name
-  role = lookup(
-    each.value,
-    "iam_role_id",
-    local.default_iam_role_id,
-  )
+  role = lookup(each.value, "iam_role_id", null) != null ? each.value["iam_role_id"] : local.default_iam_role_id
   path = var.iam_path
 
   tags = var.tags

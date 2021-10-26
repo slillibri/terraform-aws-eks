@@ -35,11 +35,26 @@ locals {
     }
   ]
 
+  auth_worker_map_roles = [
+    for k, v in var.workers_map : 
+    {
+      worker_role_arn = format("arn:%s:iam::%s:role/%s",
+        data.aws_partition.current.partition,
+        data.aws_caller_identity.current.account_id,
+        aws_iam_instance_profile.workers_map[v["name"]].role)
+      platform = lookup(
+        v,
+        "platform",
+        local.workers_group_defaults["platform"])
+    }
+  ]
+
   # Convert to format needed by aws-auth ConfigMap
   configmap_roles = [
     for role in concat(
       local.auth_launch_template_worker_roles,
       local.auth_worker_roles,
+      local.auth_worker_map_roles,
       module.node_groups.aws_auth_roles,
       module.fargate.aws_auth_roles,
     ) :
