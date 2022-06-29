@@ -433,7 +433,7 @@ resource "aws_launch_template" "workers_map" {
 
 //this might be more difficult?
   iam_instance_profile {
-    name = try(aws_iam_instance_profile.workers_map[each.value["name"]].name, false) ? aws_iam_instance_profile.workers_map[each.value["name"]].name : data.aws_iam_instance_profile.custom_workers_map_iam_instance_profile[each.value["name"]].name
+    name = try(aws_iam_instance_profile.workers_map[each.value["name"]].name != "", false) ? aws_iam_instance_profile.workers_map[each.value["name"]].name : data.aws_iam_instance_profile.custom_workers_map_iam_instance_profile[each.value["name"]].name
   }
 
   enclave_options {
